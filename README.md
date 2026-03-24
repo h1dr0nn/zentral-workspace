@@ -1,6 +1,4 @@
-# Zentral
-
-**Claude Multi-Agent Workspace**
+# Zentral - Claude Multi-Agent Workspace
 
 A lightweight desktop application for orchestrating multiple Claude AI agents from a single interface. Built with React, Rust, and Tauri v2 — everything runs in one bundled app with no separate backend process.
 
@@ -28,13 +26,13 @@ Unlike Electron-based alternatives that require separate frontend and backend pr
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
+| Layer    | Technology                                             |
+| -------- | ------------------------------------------------------ |
 | Frontend | React, TypeScript, Tailwind CSS v4, Zustand, shadcn/ui |
-| Desktop | Tauri v2 |
-| Core | Rust (Tokio, Crossbeam, rusqlite) |
-| Database | SQLite |
-| Remote | Telegram Bot API (long polling) |
+| Desktop  | Tauri v2                                               |
+| Core     | Rust (Tokio, Crossbeam, rusqlite)                      |
+| Database | SQLite                                                 |
+| Remote   | Telegram Bot API (long polling)                        |
 
 ## UI Layout
 
@@ -90,12 +88,12 @@ Full documentation lives in the [documents/](documents/) directory:
 
 ## Roadmap
 
-| Phase | Focus | Status |
-|-------|-------|--------|
+| Phase          | Focus                                                               | Status  |
+| -------------- | ------------------------------------------------------------------- | ------- |
 | 1 — Foundation | Tauri scaffold, SQLite, single agent chat, basic UI, terminal panel | Planned |
-| 2 — Agents | Multi-agent, secretary, skill pool, agent sidebar | Planned |
-| 3 — Telegram | Bot integration, remote messaging, in-app display | Planned |
-| 4 — Polish | Themes, command palette, auto-update, performance | Planned |
+| 2 — Agents     | Multi-agent, secretary, skill pool, agent sidebar                   | Planned |
+| 3 — Telegram   | Bot integration, remote messaging, in-app display                   | Planned |
+| 4 — Polish     | Themes, command palette, auto-update, performance                   | Planned |
 
 ## License
 
