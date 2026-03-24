@@ -7,6 +7,7 @@ interface UiStore {
   commandPaletteOpen: boolean;
   settingsModalOpen: boolean;
   agentCreationDialogOpen: boolean;
+  activeTab: string;
 
   toggleLeftSidebar: () => void;
   toggleTerminal: () => void;
@@ -14,6 +15,7 @@ interface UiStore {
   toggleCommandPalette: () => void;
   setSettingsModalOpen: (open: boolean) => void;
   setAgentCreationDialogOpen: (open: boolean) => void;
+  setActiveTab: (tab: string) => void;
 }
 
 export const useUiStore = create<UiStore>((set) => ({
@@ -23,6 +25,7 @@ export const useUiStore = create<UiStore>((set) => ({
   commandPaletteOpen: false,
   settingsModalOpen: false,
   agentCreationDialogOpen: false,
+  activeTab: "projects",
 
   toggleLeftSidebar: () => set((s) => ({ leftSidebarOpen: !s.leftSidebarOpen })),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
@@ -30,4 +33,5 @@ export const useUiStore = create<UiStore>((set) => ({
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),
   setAgentCreationDialogOpen: (open) => set({ agentCreationDialogOpen: open }),
+  setActiveTab: (tab) => set({ activeTab: tab }),
 }));
