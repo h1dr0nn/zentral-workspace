@@ -34,27 +34,6 @@ Unlike Electron-based alternatives that require separate frontend and backend pr
 | Database | SQLite                                                 |
 | Remote   | Telegram Bot API (long polling)                        |
 
-## UI Layout
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│ [icon] File | Edit | Selection | View | Help  [L][T][R] [—][□][✕] │
-├──────────┬──────────────────────────────┬────────────────────┤
-│ Projects │         Chat View            │ Agents             │
-│          │                              │                    │
-│ ● my-app │  You              10:30 AM   │ ★ Secretary        │
-│   api    │  > Run the tests             │   ● Online         │
-│   infra  │                              │                    │
-│          │  QA Lead          10:30 AM   │   DevOps           │
-│          │  > Tests passed (5/5)        │   ◌ Idle           │
-│          │                              │                    │
-│          │──────────────────────────────│   QA Lead          │
-│          │  Terminal (toggle)           │   ▶ Running...     │
-│          │  ~/my-app $ _                │                    │
-├──────────┴──────────────────────────────┴────────────────────┤
-└──────────────────────────────────────────────────────────────┘
-```
-
 ## Getting Started
 
 > Work in progress — see [documents/](documents/) for detailed architecture, specifications, and roadmap.
