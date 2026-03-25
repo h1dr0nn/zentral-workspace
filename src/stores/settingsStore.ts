@@ -4,6 +4,7 @@ export interface Settings {
   // General
   theme: string;
   fontSize: number;
+  chatFontSize: number;
   defaultShell: string;
 
   // Agents
@@ -16,6 +17,9 @@ export interface Settings {
   telegramEnabled: boolean;
   telegramBotToken: string;
   telegramAllowedChatIds: string;
+
+  // Chat
+  chatTokenBudget: number;
 
   // Advanced
   chatRetention: "all" | "30days" | "7days";
@@ -31,6 +35,7 @@ interface SettingsStore {
 const DEFAULTS: Settings = {
   theme: "",
   fontSize: 14,
+  chatFontSize: 14,
   defaultShell: navigator.platform.includes("Win") ? "powershell.exe" : "/bin/bash",
   maxConcurrentAgents: 5,
   defaultAgentTimeout: 30,
@@ -39,6 +44,7 @@ const DEFAULTS: Settings = {
   telegramEnabled: false,
   telegramBotToken: "",
   telegramAllowedChatIds: "",
+  chatTokenBudget: 4000,
   chatRetention: "all",
   claudeCliPath: "",
 };

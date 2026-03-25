@@ -55,7 +55,22 @@ export function GeneralTab() {
         </Select>
       </div>
 
-      {/* Font Size */}
+      {/* Chat Font Size */}
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium">Chat Font Size</Label>
+        <Select value={String(settings.chatFontSize)} onValueChange={(v) => update("chatFontSize", Number(v))}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[12, 13, 14, 15, 16, 18, 20, 22, 24].map((s) => (
+              <SelectItem key={s} value={String(s)}>{s}px</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Terminal Font Size */}
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium">Terminal Font Size</Label>
         <Select value={String(settings.fontSize)} onValueChange={(v) => update("fontSize", Number(v))}>
@@ -65,6 +80,30 @@ export function GeneralTab() {
           <SelectContent>
             {[12, 13, 14, 15, 16, 18, 20, 22, 24].map((s) => (
               <SelectItem key={s} value={String(s)}>{s}px</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Chat Token Budget */}
+      <div className="flex items-center justify-between">
+        <div>
+          <Label className="text-sm font-medium">Chat Context Budget</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">Token limit for conversation history sent as context</p>
+        </div>
+        <Select value={String(settings.chatTokenBudget)} onValueChange={(v) => update("chatTokenBudget", Number(v))}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[
+              { value: 2000, label: "2K tokens (~8KB)" },
+              { value: 4000, label: "4K tokens (~16KB)" },
+              { value: 8000, label: "8K tokens (~32KB)" },
+              { value: 16000, label: "16K tokens (~64KB)" },
+              { value: 32000, label: "32K tokens (~128KB)" },
+            ].map((opt) => (
+              <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
