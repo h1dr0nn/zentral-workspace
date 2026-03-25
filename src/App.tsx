@@ -11,6 +11,7 @@ import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { TerminalPanel } from "@/components/terminal/TerminalPanel";
 import { UI_CONSTANTS } from "@/lib/constants";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { useAppUpdater } from "@/hooks/useAppUpdater";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
 import { migrateLocalStorageToSqlite } from "@/utils/migrateToSqlite";
@@ -26,6 +27,7 @@ import { useChatStore } from "@/stores/chatStore";
 
 export default function App() {
   useGlobalShortcuts();
+  useAppUpdater();
   const [, setAppReady] = useState(false);
 
   // Initialize all stores from SQLite on first mount
