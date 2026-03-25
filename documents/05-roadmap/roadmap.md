@@ -10,13 +10,13 @@
 ## Overview
 
 ```
-Phase 1 (Foundation) -> Phase 2 (Agents) -> Phase 3 (Telegram) -> Phase 4 (Polish) -> Phase 5 (Automation)
+Phase 1 (Foundation) -> Phase 2 (Agents) -> Phase 3 (Telegram) -> Phase 4 (Polish) -> Phase 5 (Automation) -> Phase 6 (MCP)
          |                      |
          +----------------------+
            Minimum Viable Product
 ```
 
-Phase 1 and Phase 2 together constitute the minimum viable product (MVP). A user who completes the MVP can open the app, manage projects, chat with multiple Claude agents orchestrated by a secretary, and use a built-in terminal. Phases 3 and 4 extend the product with remote access and production-grade polish. Phase 5 adds proactive automation capabilities — scheduling, workflows, history tracking, and a shared knowledge base.
+Phase 1 and Phase 2 together constitute the minimum viable product (MVP). A user who completes the MVP can open the app, manage projects, chat with multiple Claude agents orchestrated by a secretary, and use a built-in terminal. Phases 3 and 4 extend the product with remote access and production-grade polish. Phase 5 adds proactive automation capabilities — scheduling, workflows, history tracking, and a shared knowledge base. Phase 6 embeds an MCP server, turning Zentral into a programmable platform that Claude Code and other MCP clients can control directly.
 
 ## Phases Overview
 
@@ -27,6 +27,7 @@ Phase 1 and Phase 2 together constitute the minimum viable product (MVP). A user
 | 3 | Telegram | Bot integration, remote messaging, in-app Telegram display | Complete |
 | 4 | Polish | Themes, command palette, settings, auto-update, performance tuning | Complete |
 | 5 | Automation | Schedules, workflows, activity history, knowledge base | Complete |
+| 6 | MCP | Embedded MCP server, 25+ tools, resources, Claude Code integration | Planned |
 
 ## MVP Definition
 
@@ -78,6 +79,12 @@ Adds proactive automation features that transform agents from reactive assistant
 
 See [Phase 5 Automation](phase-5-automation.md) for the detailed task list and acceptance criteria.
 
+### Phase 6 -- MCP Integration Bridge
+
+Embeds an MCP (Model Context Protocol) server directly in the Rust backend, exposing all Zentral features as MCP tools and resources. Claude Code and other MCP clients can connect via SSE on `localhost:23847` to manage agents, create schedules, run workflows, query history, and inject knowledge — all without touching the UI. This transforms Zentral from a standalone app into a programmable multi-agent platform.
+
+See [Phase 6 MCP](phase-6-mcp.md) for the detailed task list and acceptance criteria.
+
 ## Timeline Considerations
 
 Phase durations depend on team size and availability. As a rough guide for a solo or small-team effort:
@@ -89,6 +96,7 @@ Phase durations depend on team size and availability. As a rough guide for a sol
 | 3 | 2--3 weeks |
 | 4 | 2--3 weeks |
 | 5 | 3--4 weeks |
+| 6 | 3--4 weeks |
 
 These estimates assume full-time effort and may vary based on familiarity with Tauri, PTY handling, and the Claude CLI.
 
@@ -99,5 +107,7 @@ These estimates assume full-time effort and may vary based on familiarity with T
 - [Phase 3 Telegram](phase-3-telegram.md)
 - [Phase 4 Polish](phase-4-polish.md)
 - [Phase 5 Automation](phase-5-automation.md)
+- [Phase 6 MCP](phase-6-mcp.md)
+- [MCP Server Specification](../02-specifications/mcp-server.md)
 - [System Architecture](../02-architecture/system-architecture.md)
 - [Project Overview](../01-project/overview.md)
