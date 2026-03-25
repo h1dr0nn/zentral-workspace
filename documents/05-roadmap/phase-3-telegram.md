@@ -2,8 +2,11 @@
 
 > Adds remote access to Zentral through a Telegram bot, enabling messaging from Telegram with responses in both Telegram and the in-app chat UI.
 
-> **Status:** ui-complete
+> **Status:** ui-only — backend not implemented
 > **Last updated:** 2026-03-25
+>
+> **What works:** Telegram settings tab (bot token, chat IDs, toggle), message source badge in chat UI.
+> **What's missing:** Telegram bot backend (empty stub), long polling, message routing, bot commands, authentication, response formatting.
 
 ---
 

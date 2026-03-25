@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { loadArray, autoSave } from "./persist";
+import { invoke } from "@tauri-apps/api/core";
 
 export type HistoryEventType =
   | "skill_run"
@@ -36,8 +36,11 @@ export interface HistoryFilter {
 interface HistoryStore {
   events: HistoryEvent[];
   filter: HistoryFilter;
-  addEvent: (event: Omit<HistoryEvent, "id">) => void;
-  clearHistory: () => void;
+  isLoaded: boolean;
+
+  initialize: () => Promise<void>;
+  addEvent: (event: Omit<HistoryEvent, "id">) => Promise<void>;
+  clearHistory: () => Promise<void>;
   setFilter: (patch: Partial<HistoryFilter>) => void;
   resetFilter: () => void;
 }
@@ -50,21 +53,81 @@ const DEFAULT_FILTER: HistoryFilter = {
   search: "",
 };
 
-export const useHistoryStore = create<HistoryStore>((set) => ({
-  events: loadArray<HistoryEvent>("zentral:history"),
-  filter: DEFAULT_FILTER,
+function normalize(raw: any): HistoryEvent {
+  return {
+    id: raw.id,
+    type: (raw.event_type ?? raw.type) as HistoryEventType,
+    agentId: raw.agent_id ?? raw.agentId,
+    projectId: raw.project_id ?? raw.projectId ?? null,
+    skillId: raw.skill_id ?? raw.skillId ?? null,
+    workflowId: raw.workflow_id ?? raw.workflowId ?? null,
+    summary: raw.summary,
+    details: raw.details ?? null,
+    status: raw.status as HistoryEventStatus,
+    duration: raw.duration ?? null,
+    timestamp: raw.timestamp,
+  };
+}
 
-  addEvent: (event) => {
-    const id = `evt-${Date.now()}`;
-    set((s) => ({ events: [{ ...event, id }, ...s.events] }));
+export const useHistoryStore = create<HistoryStore>((set) => ({
+  events: [],
+  filter: DEFAULT_FILTER,
+  isLoaded: false,
+
+  initialize: async () => {
+    try {
+      const raw = await invoke("list_history", {
+        filter: {
+          agent_id: null,
+          project_id: null,
+          event_type: null,
+          status: null,
+          limit: 500,
+          offset: 0,
+        },
+      });
+      set({ events: (raw as any[]).map(normalize), isLoaded: true });
+    } catch (err) {
+      console.error("Failed to load history:", err);
+      set({ isLoaded: true });
+    }
   },
 
-  clearHistory: () => set({ events: [] }),
+  addEvent: async (event) => {
+    try {
+      const raw = await invoke("add_history_event", {
+        event: {
+          id: "",
+          event_type: event.type,
+          agent_id: event.agentId,
+          project_id: event.projectId,
+          skill_id: event.skillId,
+          workflow_id: event.workflowId,
+          summary: event.summary,
+          details: event.details,
+          status: event.status,
+          duration: event.duration,
+          timestamp: event.timestamp || new Date().toISOString(),
+        },
+      });
+      const created = normalize(raw);
+      set((s) => ({ events: [created, ...s.events] }));
+    } catch (err) {
+      console.error("Failed to add history event:", err);
+    }
+  },
+
+  clearHistory: async () => {
+    try {
+      await invoke("clear_history");
+      set({ events: [] });
+    } catch (err) {
+      console.error("Failed to clear history:", err);
+    }
+  },
 
   setFilter: (patch) =>
     set((s) => ({ filter: { ...s.filter, ...patch } })),
 
   resetFilter: () => set({ filter: DEFAULT_FILTER }),
 }));
-
-autoSave(useHistoryStore, "zentral:history", (s) => s.events);

@@ -2,8 +2,11 @@
 
 > Transforms Zentral from a single-agent chat app into a full multi-agent workspace with orchestration, skill-based specialization, and concurrent execution.
 
-> **Status:** ui-complete
+> **Status:** in-progress — UI complete, orchestration working (frontend-driven)
 > **Last updated:** 2026-03-25
+>
+> **What works:** Agent sidebar, skill pool UI, agent CRUD, Command Room (Zennis delegates to agents via Claude CLI), Discussion Room (multi-agent debate with consensus), all stores persist.
+> **What's missing:** Rust agent manager (stub), backend agent lifecycle/process management, concurrency enforcement, secretary logic in Rust.
 
 ---
 

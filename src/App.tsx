@@ -13,9 +13,52 @@ import { UI_CONSTANTS } from "@/lib/constants";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
+import { migrateLocalStorageToSqlite } from "@/utils/migrateToSqlite";
+import { useProjectStore } from "@/stores/projectStore";
+import { useAgentStore } from "@/stores/agentStore";
+import { useSkillStore } from "@/stores/skillStore";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { useScheduleStore } from "@/stores/scheduleStore";
+import { useWorkflowStore } from "@/stores/workflowStore";
+import { useHistoryStore } from "@/stores/historyStore";
+import { useKnowledgeStore } from "@/stores/knowledgeStore";
+import { useChatStore } from "@/stores/chatStore";
 
 export default function App() {
   useGlobalShortcuts();
+  const [, setAppReady] = useState(false);
+
+  // Initialize all stores from SQLite on first mount
+  useEffect(() => {
+    async function boot() {
+      try {
+        await migrateLocalStorageToSqlite();
+      } catch (err) {
+        console.error("Migration error:", err);
+      }
+
+      await Promise.allSettled([
+        useProjectStore.getState().initialize(),
+        useAgentStore.getState().initialize(),
+        useSkillStore.getState().initialize(),
+        useSettingsStore.getState().initialize(),
+        useScheduleStore.getState().initialize(),
+        useWorkflowStore.getState().initialize(),
+        useHistoryStore.getState().initialize(),
+        useKnowledgeStore.getState().initialize(),
+      ]);
+
+      // Load chat messages for active context
+      const activeProject = useProjectStore.getState().activeProjectId;
+      const activeAgent = useChatStore.getState().activeAgentId;
+      if (activeProject && activeAgent) {
+        await useChatStore.getState().loadMessages(activeProject, activeAgent);
+      }
+
+      setAppReady(true);
+    }
+    boot();
+  }, []);
   const { leftSidebarOpen, rightSidebarOpen, terminalOpen, setLeftSidebarOpen, setRightSidebarOpen, setTerminalOpen } = useUiStore();
   const [terminalHeight, setTerminalHeight] = useState(UI_CONSTANTS.TERMINAL_DEFAULT_HEIGHT);
   const [terminalFull, setTerminalFull] = useState(false);

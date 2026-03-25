@@ -2,8 +2,11 @@
 
 > Core application shell: a working single-agent chat app with persistent storage, a terminal panel, and the foundational UI framework.
 
-> **Status:** ui-complete
+> **Status:** in-progress — UI complete, backend partial
 > **Last updated:** 2026-03-25
+>
+> **What works:** Tauri scaffold, custom window, resizable panels, themes, settings, project CRUD, Claude CLI auth (OAuth), single agent streaming chat, localStorage persistence.
+> **What's missing:** SQLite persistence layer (stub), PTY terminal backend (stub).
 
 ---
 

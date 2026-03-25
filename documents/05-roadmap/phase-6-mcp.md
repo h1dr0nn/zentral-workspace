@@ -2,8 +2,11 @@
 
 > Embeds an MCP server in the Zentral backend, exposing all app features as tools and resources for Claude Code and other MCP clients.
 
-> **Status:** draft
+> **Status:** planned — specification complete, implementation not started
 > **Last updated:** 2026-03-25
+>
+> **What works:** Full specification with 11 subtasks, tool schemas, and resource URIs defined. MCP SDK listed in dependencies.
+> **What's missing:** Everything — no `src-tauri/src/mcp/` directory, no server code, no tools, no resources, no settings UI.
 
 ---
 

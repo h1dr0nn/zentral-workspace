@@ -2,8 +2,11 @@
 
 > Brings Zentral to production quality with focus on user experience, reliability, and operational readiness.
 
-> **Status:** ui-complete
+> **Status:** in-progress — core polish done, production items remaining
 > **Last updated:** 2026-03-25
+>
+> **What works:** 12 themes with smooth switching, command palette with fuzzy search, keyboard shortcuts (global hooks), 4-tab settings modal (General, Agents, Telegram, Advanced), error boundaries, Radix UI a11y primitives, performance optimizations (lazy loading, Zustand).
+> **What's missing:** Auto-update (no Tauri updater plugin), CI/CD pipeline (no GitHub Actions), comprehensive accessibility audit, end-user documentation.
 
 ---
 

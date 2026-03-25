@@ -20,14 +20,14 @@ Phase 1 and Phase 2 together constitute the minimum viable product (MVP). A user
 
 ## Phases Overview
 
-| Phase | Focus | Key Deliverables | UI Status |
-|-------|-------|-----------------|-----------|
-| 1 | Foundation | Tauri scaffold, SQLite persistence, single agent chat, basic UI, terminal panel | Complete |
-| 2 | Agents | Multi-agent system, secretary orchestrator, skill pool, agent sidebar | Complete |
-| 3 | Telegram | Bot integration, remote messaging, in-app Telegram display | Complete |
-| 4 | Polish | Themes, command palette, settings, auto-update, performance tuning | Complete |
-| 5 | Automation | Schedules, workflows, activity history, knowledge base | Complete |
-| 6 | MCP | Embedded MCP server, 25+ tools, resources, Claude Code integration | Planned |
+| Phase | Focus | Key Deliverables | UI | Backend | Status |
+|-------|-------|-----------------|-----|---------|--------|
+| 1 | Foundation | Tauri scaffold, SQLite, single agent chat, UI, terminal | Done | Partial | Auth + chat via CLI working. SQLite stub. PTY stub. |
+| 2 | Agents | Multi-agent system, orchestrator, skill pool, sidebar | Done | Partial | Command Room + Discussion Room working (frontend-driven). Agent manager stub. |
+| 3 | Telegram | Bot integration, remote messaging, in-app display | Done | Stub | Settings UI done. Bot backend empty. |
+| 4 | Polish | Themes, command palette, settings, auto-update | Done | Partial | Themes + palette + shortcuts working. Auto-update, CI/CD missing. |
+| 5 | Automation | Schedules, workflows, history, knowledge base | Done | Stub | All UI + stores persist. No execution engines. No SQLite. |
+| 6 | MCP | Embedded MCP server, 25+ tools, resources | — | — | Spec complete. Implementation not started. |
 
 ## MVP Definition
 

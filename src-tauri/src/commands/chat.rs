@@ -1,3 +1,5 @@
+use crate::persistence::Db;
+use crate::persistence::models::ChatMessageRow;
 use serde::{Deserialize, Serialize};
 use std::io::BufRead;
 use std::process::{Command, Stdio};
@@ -156,4 +158,39 @@ pub async fn send_chat_message(
     })
     .await
     .map_err(|e| format!("Task panicked: {}", e))?
+}
+
+// ── Chat persistence commands ──
+
+#[tauri::command]
+pub async fn save_chat_message(db: tauri::State<'_, Db>, message: ChatMessageRow) -> Result<(), String> {
+    let db = db.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        crate::persistence::chat::insert(&conn, &message).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn get_chat_messages(db: tauri::State<'_, Db>, chat_key: String) -> Result<Vec<ChatMessageRow>, String> {
+    let db = db.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        crate::persistence::chat::get_by_key(&conn, &chat_key).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn delete_chat_messages(db: tauri::State<'_, Db>, chat_key: String) -> Result<(), String> {
+    let db = db.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        crate::persistence::chat::delete_by_key(&conn, &chat_key).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }

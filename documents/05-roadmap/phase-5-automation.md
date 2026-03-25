@@ -2,8 +2,11 @@
 
 > Adds proactive automation capabilities: recurring schedules, multi-step workflows, activity history, and a shared knowledge base.
 
-> **Status:** ui-complete
+> **Status:** ui-complete — backend not implemented
 > **Last updated:** 2026-03-25
+>
+> **What works:** All 4 Activity Bar tabs (Schedules, Workflows, History, Knowledge) with full CRUD UI. Zustand stores persist to localStorage. Schedule frequency presets, workflow step reordering, history filtering/search, knowledge categories/tags/detail view.
+> **What's missing:** Backend execution engines (scheduling engine, workflow runner, history event recording, knowledge context injection). No SQLite persistence. No actual cron firing or workflow execution.
 
 ---
 

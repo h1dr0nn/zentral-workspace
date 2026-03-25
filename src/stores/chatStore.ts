@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
 import { useProjectStore } from "./projectStore";
 
 export interface ChatMessage {
@@ -14,22 +15,6 @@ export interface ChatMessage {
 // Chat key = "projectId:agentId" — each project has its own chat per agent
 function chatKey(projectId: string | null, agentId: string): string {
   return `${projectId ?? "none"}:${agentId}`;
-}
-
-import { autoSave } from "./persist";
-
-function loadMessages(): Record<string, ChatMessage[]> {
-  try {
-    const raw = localStorage.getItem("zentral:chat-messages");
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    for (const key of Object.keys(parsed)) {
-      parsed[key] = parsed[key].map((m: ChatMessage) => ({ ...m, isStreaming: false }));
-    }
-    return parsed;
-  } catch {
-    return {};
-  }
 }
 
 export type RoomMode = "command" | "discussion";
@@ -50,17 +35,33 @@ interface ChatState {
   stopStream: (agentId: string, chatKeyOverride?: string) => void;
   setMessages: (agentId: string, messages: ChatMessage[]) => void;
 
-  // Room helpers — target "command" or "discussion" chat key
+  // Room helpers
   addSystemMessage: (content: string, roomKey?: string) => void;
   addAgentMessage: (agentId: string, messageId: string, content: string, roomKey?: string) => void;
 
   // Derived helpers
   getMessages: (agentId: string) => ChatMessage[];
   getIsStreaming: (agentId: string) => boolean;
+
+  // SQLite persistence
+  loadMessages: (projectId: string, agentId: string) => Promise<void>;
+  persistMessage: (chatKeyStr: string, message: ChatMessage) => Promise<void>;
+}
+
+function toRow(chatKeyStr: string, m: ChatMessage) {
+  return {
+    id: m.id,
+    chat_key: chatKeyStr,
+    agent_id: m.agentId,
+    role: m.role,
+    content: m.content,
+    timestamp: m.timestamp,
+    source: m.source ?? "local",
+  };
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
-  messagesByKey: loadMessages(),
+  messagesByKey: {},
   streamingByKey: {},
   memoryEnabled: true,
   roomMode: "command",
@@ -80,6 +81,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return get().streamingByKey[chatKey(projectId, agentId)] || false;
   },
 
+  loadMessages: async (projectId, agentId) => {
+    const key = chatKey(projectId, agentId);
+    // Skip if already loaded
+    if (get().messagesByKey[key]?.length) return;
+    try {
+      const rows: any[] = await invoke("get_chat_messages", { chatKey: key });
+      const messages: ChatMessage[] = rows.map((r) => ({
+        id: r.id,
+        agentId: r.agent_id,
+        role: r.role,
+        content: r.content,
+        timestamp: r.timestamp,
+        source: r.source,
+        isStreaming: false,
+      }));
+      if (messages.length) {
+        set((s) => ({
+          messagesByKey: { ...s.messagesByKey, [key]: messages },
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to load chat messages:", err);
+    }
+  },
+
+  persistMessage: async (chatKeyStr, message) => {
+    try {
+      await invoke("save_chat_message", { message: toRow(chatKeyStr, message) });
+    } catch (err) {
+      console.error("Failed to persist chat message:", err);
+    }
+  },
+
   sendMessage: (agentId, content, role = "user", source = "local") =>
     set((state) => {
       const projectId = useProjectStore.getState().activeProjectId;
@@ -93,6 +127,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         source,
       };
       const existing = state.messagesByKey[key] || [];
+      // Persist user message to SQLite
+      get().persistMessage(key, newMessage);
       return {
         messagesByKey: {
           ...state.messagesByKey,
@@ -163,6 +199,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const updated = messages.map((msg) =>
         msg.isStreaming ? { ...msg, isStreaming: false } : msg
       );
+      // Persist the final agent message to SQLite
+      const agentMsg = updated.find((m) => m.isStreaming === false && m.role === "agent" && messages.some((om) => om.id === m.id && om.isStreaming));
+      if (agentMsg) {
+        get().persistMessage(key, agentMsg);
+      }
       return {
         streamingByKey: { ...state.streamingByKey, [key]: false },
         messagesByKey: { ...state.messagesByKey, [key]: updated },
@@ -190,6 +231,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         content,
         timestamp: Date.now(),
       };
+      // Persist system message
+      get().persistMessage(key, msg);
       return { messagesByKey: { ...state.messagesByKey, [key]: [...existing, msg] } };
     }),
 
@@ -209,10 +252,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       };
       return {
         messagesByKey: { ...state.messagesByKey, [key]: [...existing, msg] },
-        // Set streamingByKey so "Thinking…" shows and UI knows streaming is active
         ...(isPlaceholder ? { streamingByKey: { ...state.streamingByKey, [key]: true } } : {}),
       };
     }),
 }));
-
-autoSave(useChatStore, "zentral:chat-messages", (s) => s.messagesByKey);

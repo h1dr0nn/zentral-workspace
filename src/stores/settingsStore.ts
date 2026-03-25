@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface Settings {
   // General
@@ -28,8 +29,10 @@ export interface Settings {
 
 interface SettingsStore {
   settings: Settings;
-  update: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
-  resetToDefaults: () => void;
+  isLoaded: boolean;
+  initialize: () => Promise<void>;
+  update: <K extends keyof Settings>(key: K, value: Settings[K]) => Promise<void>;
+  resetToDefaults: () => Promise<void>;
 }
 
 const DEFAULTS: Settings = {
@@ -49,30 +52,75 @@ const DEFAULTS: Settings = {
   claudeCliPath: "",
 };
 
-function load(): Settings {
-  try {
-    const raw = localStorage.getItem("zentral:settings");
-    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS };
-  } catch {
-    return { ...DEFAULTS };
-  }
+function fromBackend(raw: any): Settings {
+  return {
+    theme: raw.theme ?? DEFAULTS.theme,
+    fontSize: raw.font_size ?? DEFAULTS.fontSize,
+    chatFontSize: raw.chat_font_size ?? DEFAULTS.chatFontSize,
+    defaultShell: raw.default_shell || DEFAULTS.defaultShell,
+    maxConcurrentAgents: raw.max_concurrent_agents ?? DEFAULTS.maxConcurrentAgents,
+    defaultAgentTimeout: raw.default_agent_timeout ?? DEFAULTS.defaultAgentTimeout,
+    autoRestartOnCrash: raw.auto_restart_on_crash ?? DEFAULTS.autoRestartOnCrash,
+    crashLoopThreshold: raw.crash_loop_threshold ?? DEFAULTS.crashLoopThreshold,
+    telegramEnabled: raw.telegram_enabled ?? DEFAULTS.telegramEnabled,
+    telegramBotToken: raw.telegram_bot_token ?? DEFAULTS.telegramBotToken,
+    telegramAllowedChatIds: raw.telegram_allowed_chat_ids ?? DEFAULTS.telegramAllowedChatIds,
+    chatTokenBudget: raw.chat_token_budget ?? DEFAULTS.chatTokenBudget,
+    chatRetention: raw.chat_retention ?? DEFAULTS.chatRetention,
+    claudeCliPath: raw.claude_cli_path ?? DEFAULTS.claudeCliPath,
+  };
 }
 
-function save(settings: Settings) {
-  try { localStorage.setItem("zentral:settings", JSON.stringify(settings)); } catch { /* quota exceeded */ }
+function toBackend(s: Settings) {
+  return {
+    theme: s.theme,
+    font_size: s.fontSize,
+    chat_font_size: s.chatFontSize,
+    default_shell: s.defaultShell,
+    max_concurrent_agents: s.maxConcurrentAgents,
+    default_agent_timeout: s.defaultAgentTimeout,
+    auto_restart_on_crash: s.autoRestartOnCrash,
+    crash_loop_threshold: s.crashLoopThreshold,
+    telegram_enabled: s.telegramEnabled,
+    telegram_bot_token: s.telegramBotToken,
+    telegram_allowed_chat_ids: s.telegramAllowedChatIds,
+    chat_token_budget: s.chatTokenBudget,
+    chat_retention: s.chatRetention,
+    claude_cli_path: s.claudeCliPath,
+  };
 }
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
-  settings: load(),
+  settings: { ...DEFAULTS },
+  isLoaded: false,
 
-  update: (key, value) => {
-    const updated = { ...get().settings, [key]: value };
-    set({ settings: updated });
-    save(updated);
+  initialize: async () => {
+    try {
+      const raw = await invoke("get_settings");
+      const settings = fromBackend(raw);
+      set({ settings, isLoaded: true });
+    } catch (err) {
+      console.error("Failed to load settings from SQLite:", err);
+      set({ isLoaded: true });
+    }
   },
 
-  resetToDefaults: () => {
+  update: async (key, value) => {
+    const updated = { ...get().settings, [key]: value };
+    set({ settings: updated });
+    try {
+      await invoke("update_settings", { settings: toBackend(updated) });
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+    }
+  },
+
+  resetToDefaults: async () => {
     set({ settings: { ...DEFAULTS } });
-    save({ ...DEFAULTS });
+    try {
+      await invoke("update_settings", { settings: toBackend(DEFAULTS) });
+    } catch (err) {
+      console.error("Failed to reset settings:", err);
+    }
   },
 }));

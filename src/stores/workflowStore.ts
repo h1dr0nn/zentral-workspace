@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { loadArray, autoSave } from "./persist";
+import { invoke } from "@tauri-apps/api/core";
 
 export type WorkflowStatus = "draft" | "active" | "paused";
 
@@ -27,93 +27,185 @@ export interface Workflow {
 interface WorkflowStore {
   workflows: Workflow[];
   activeWorkflowId: string | null;
+  isLoaded: boolean;
 
-  addWorkflow: (workflow: Omit<Workflow, "id" | "createdAt">) => void;
-  removeWorkflow: (id: string) => void;
-  updateWorkflow: (id: string, patch: Partial<Omit<Workflow, "steps">>) => void;
+  initialize: () => Promise<void>;
+  addWorkflow: (workflow: Omit<Workflow, "id" | "createdAt">) => Promise<void>;
+  removeWorkflow: (id: string) => Promise<void>;
+  updateWorkflow: (id: string, patch: Partial<Omit<Workflow, "steps">>) => Promise<void>;
   setActiveWorkflow: (id: string | null) => void;
 
-  addStep: (workflowId: string, step: Omit<WorkflowStep, "id">) => void;
-  removeStep: (workflowId: string, stepId: string) => void;
-  updateStep: (workflowId: string, stepId: string, patch: Partial<WorkflowStep>) => void;
-  reorderSteps: (workflowId: string, stepIds: string[]) => void;
+  addStep: (workflowId: string, step: Omit<WorkflowStep, "id">) => Promise<void>;
+  removeStep: (workflowId: string, stepId: string) => Promise<void>;
+  updateStep: (workflowId: string, stepId: string, patch: Partial<WorkflowStep>) => Promise<void>;
+  reorderSteps: (workflowId: string, stepIds: string[]) => Promise<void>;
 }
 
-export const useWorkflowStore = create<WorkflowStore>((set) => ({
-  workflows: loadArray<Workflow>("zentral:workflows"),
-  activeWorkflowId: null,
+function normalizeStep(raw: any): WorkflowStep {
+  return {
+    id: raw.id,
+    agentId: raw.agent_id ?? raw.agentId,
+    skillId: raw.skill_id ?? raw.skillId,
+    label: raw.label ?? "",
+    order: raw.order ?? raw.step_order ?? 0,
+    onSuccess: raw.on_success ?? raw.onSuccess,
+    onFailure: raw.on_failure ?? raw.onFailure,
+  };
+}
 
-  addWorkflow: (workflow) => {
-    const id = `wf-${Date.now()}`;
-    set((s) => ({
-      workflows: [...s.workflows, { ...workflow, id, createdAt: new Date().toISOString() }],
-    }));
+function normalize(raw: any): Workflow {
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description ?? "",
+    projectId: raw.project_id ?? raw.projectId ?? null,
+    status: raw.status as WorkflowStatus,
+    steps: (raw.steps ?? []).map(normalizeStep),
+    createdAt: raw.created_at ?? raw.createdAt ?? "",
+    lastRunAt: raw.last_run_at ?? raw.lastRunAt ?? null,
+  };
+}
+
+function toDto(w: Workflow) {
+  return {
+    id: w.id,
+    name: w.name,
+    description: w.description,
+    project_id: w.projectId,
+    status: w.status,
+    steps: w.steps.map((s) => ({
+      id: s.id,
+      agent_id: s.agentId,
+      skill_id: s.skillId,
+      label: s.label,
+      order: s.order,
+      on_success: s.onSuccess ?? null,
+      on_failure: s.onFailure ?? null,
+    })),
+    created_at: w.createdAt,
+    last_run_at: w.lastRunAt,
+  };
+}
+
+export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
+  workflows: [],
+  activeWorkflowId: null,
+  isLoaded: false,
+
+  initialize: async () => {
+    try {
+      const raw = await invoke("list_workflows");
+      set({ workflows: (raw as any[]).map(normalize), isLoaded: true });
+    } catch (err) {
+      console.error("Failed to load workflows:", err);
+      set({ isLoaded: true });
+    }
   },
 
-  removeWorkflow: (id) =>
-    set((s) => ({
-      workflows: s.workflows.filter((w) => w.id !== id),
-      activeWorkflowId: s.activeWorkflowId === id ? null : s.activeWorkflowId,
-    })),
+  addWorkflow: async (workflow) => {
+    try {
+      const raw = await invoke("create_workflow", { workflow: toDto({ ...workflow, id: "", createdAt: "" } as Workflow) });
+      set((s) => ({ workflows: [...s.workflows, normalize(raw)] }));
+    } catch (err) {
+      console.error("Failed to create workflow:", err);
+    }
+  },
 
-  updateWorkflow: (id, patch) =>
-    set((s) => ({
-      workflows: s.workflows.map((w) => (w.id === id ? { ...w, ...patch } : w)),
-    })),
+  removeWorkflow: async (id) => {
+    try {
+      await invoke("delete_workflow", { id });
+      set((s) => ({
+        workflows: s.workflows.filter((w) => w.id !== id),
+        activeWorkflowId: s.activeWorkflowId === id ? null : s.activeWorkflowId,
+      }));
+    } catch (err) {
+      console.error("Failed to delete workflow:", err);
+    }
+  },
+
+  updateWorkflow: async (id, patch) => {
+    const current = get().workflows.find((w) => w.id === id);
+    if (!current) return;
+    const updated = { ...current, ...patch };
+    try {
+      await invoke("update_workflow", { workflow: toDto(updated) });
+      set((s) => ({
+        workflows: s.workflows.map((w) => (w.id === id ? updated : w)),
+      }));
+    } catch (err) {
+      console.error("Failed to update workflow:", err);
+    }
+  },
 
   setActiveWorkflow: (id) => set({ activeWorkflowId: id }),
 
-  addStep: (workflowId, step) => {
-    const id = `step-${Date.now()}`;
-    set((s) => ({
-      workflows: s.workflows.map((w) =>
-        w.id === workflowId
-          ? { ...w, steps: [...w.steps, { ...step, id }] }
-          : w
-      ),
-    }));
+  addStep: async (workflowId, step) => {
+    const current = get().workflows.find((w) => w.id === workflowId);
+    if (!current) return;
+    const newStep: WorkflowStep = { ...step, id: `step-${Date.now()}` };
+    const updated = { ...current, steps: [...current.steps, newStep] };
+    try {
+      await invoke("update_workflow", { workflow: toDto(updated) });
+      set((s) => ({
+        workflows: s.workflows.map((w) => (w.id === workflowId ? updated : w)),
+      }));
+    } catch (err) {
+      console.error("Failed to add step:", err);
+    }
   },
 
-  removeStep: (workflowId, stepId) =>
-    set((s) => ({
-      workflows: s.workflows.map((w) =>
-        w.id === workflowId
-          ? {
-              ...w,
-              steps: w.steps
-                .filter((st) => st.id !== stepId)
-                .map((st, i) => ({ ...st, order: i })),
-            }
-          : w
-      ),
-    })),
+  removeStep: async (workflowId, stepId) => {
+    const current = get().workflows.find((w) => w.id === workflowId);
+    if (!current) return;
+    const updated = {
+      ...current,
+      steps: current.steps.filter((s) => s.id !== stepId).map((s, i) => ({ ...s, order: i })),
+    };
+    try {
+      await invoke("update_workflow", { workflow: toDto(updated) });
+      set((s) => ({
+        workflows: s.workflows.map((w) => (w.id === workflowId ? updated : w)),
+      }));
+    } catch (err) {
+      console.error("Failed to remove step:", err);
+    }
+  },
 
-  updateStep: (workflowId, stepId, patch) =>
-    set((s) => ({
-      workflows: s.workflows.map((w) =>
-        w.id === workflowId
-          ? {
-              ...w,
-              steps: w.steps.map((st) => (st.id === stepId ? { ...st, ...patch } : st)),
-            }
-          : w
-      ),
-    })),
+  updateStep: async (workflowId, stepId, patch) => {
+    const current = get().workflows.find((w) => w.id === workflowId);
+    if (!current) return;
+    const updated = {
+      ...current,
+      steps: current.steps.map((s) => (s.id === stepId ? { ...s, ...patch } : s)),
+    };
+    try {
+      await invoke("update_workflow", { workflow: toDto(updated) });
+      set((s) => ({
+        workflows: s.workflows.map((w) => (w.id === workflowId ? updated : w)),
+      }));
+    } catch (err) {
+      console.error("Failed to update step:", err);
+    }
+  },
 
-  reorderSteps: (workflowId, stepIds) =>
-    set((s) => ({
-      workflows: s.workflows.map((w) => {
-        if (w.id !== workflowId) return w;
-        const stepMap = new Map(w.steps.map((st) => [st.id, st]));
-        const reordered = stepIds
-          .map((id, i) => {
-            const step = stepMap.get(id);
-            return step ? { ...step, order: i } : null;
-          })
-          .filter((st): st is WorkflowStep => st !== null);
-        return { ...w, steps: reordered };
-      }),
-    })),
+  reorderSteps: async (workflowId, stepIds) => {
+    const current = get().workflows.find((w) => w.id === workflowId);
+    if (!current) return;
+    const stepMap = new Map(current.steps.map((s) => [s.id, s]));
+    const reordered = stepIds
+      .map((id, i) => {
+        const step = stepMap.get(id);
+        return step ? { ...step, order: i } : null;
+      })
+      .filter((s): s is WorkflowStep => s !== null);
+    const updated = { ...current, steps: reordered };
+    try {
+      await invoke("update_workflow", { workflow: toDto(updated) });
+      set((s) => ({
+        workflows: s.workflows.map((w) => (w.id === workflowId ? updated : w)),
+      }));
+    } catch (err) {
+      console.error("Failed to reorder steps:", err);
+    }
+  },
 }));
-
-autoSave(useWorkflowStore, "zentral:workflows", (s) => s.workflows);
