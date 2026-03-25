@@ -10,4 +10,5 @@ pub mod schedule;
 pub mod session;
 pub mod skill;
 pub mod telegram;
+pub mod terminal;
 pub mod workflow;

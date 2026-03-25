@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
 import { useUiStore } from "./uiStore";
 
 interface TerminalTab {
@@ -34,6 +35,9 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   },
 
   removeTab: (id) => {
+    // Kill the PTY process for this tab
+    invoke("pty_kill", { id }).catch(() => {});
+
     const { tabs, activeTabId } = get();
     const idx = tabs.findIndex((t) => t.id === id);
     if (idx === -1) return;

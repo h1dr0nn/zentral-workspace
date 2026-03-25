@@ -55,6 +55,8 @@
     @apply bg-background text-foreground;
     font-family: "Inter", system-ui, -apple-system, sans-serif;
     overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   html {
@@ -72,6 +74,14 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+
+/* Allow text selection in content areas */
+input, textarea, [contenteditable="true"],
+.selectable, .prose, pre, code,
+.xterm-screen {
+  user-select: text;
+  -webkit-user-select: text;
+}
 
 .xterm {
   height: 100%;

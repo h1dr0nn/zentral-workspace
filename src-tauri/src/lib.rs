@@ -10,7 +10,7 @@ use commands::{
     agent as agent_cmd, auth as auth_cmd, chat as chat_cmd, config as config_cmd,
     history as history_cmd, knowledge as knowledge_cmd, migration as migration_cmd,
     project as project_cmd, schedule as schedule_cmd, session, skill as skill_cmd,
-    telegram as telegram_cmd, workflow as workflow_cmd,
+    telegram as telegram_cmd, terminal as terminal_cmd, workflow as workflow_cmd,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -30,6 +30,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(config::AppSettings::default())
         .manage(db)
+        .manage(process::pty::new_manager())
         .invoke_handler(tauri::generate_handler![
             // Auth
             auth_cmd::check_auth_status,
@@ -80,6 +81,11 @@ pub fn run() {
             knowledge_cmd::create_knowledge_document,
             knowledge_cmd::update_knowledge_document,
             knowledge_cmd::delete_knowledge_document,
+            // Terminal PTY
+            terminal_cmd::pty_spawn,
+            terminal_cmd::pty_write,
+            terminal_cmd::pty_resize,
+            terminal_cmd::pty_kill,
             // Telegram
             telegram_cmd::start_telegram_bot,
             telegram_cmd::stop_telegram_bot,
