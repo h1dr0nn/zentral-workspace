@@ -2,8 +2,8 @@
 
 > Token-based design system built on CSS custom properties with oklch colors, integrated into Tailwind CSS v4 via the `@theme inline` directive.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

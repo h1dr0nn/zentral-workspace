@@ -12,6 +12,7 @@ use commands::{agent as agent_cmd, config as config_cmd, project as project_cmd,
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             agent_cmd::create_agent,
             agent_cmd::delete_agent,

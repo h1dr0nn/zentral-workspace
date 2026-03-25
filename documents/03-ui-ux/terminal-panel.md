@@ -2,8 +2,8 @@
 
 > Togglable embedded terminal panel at the bottom of the main content area for running shell commands without leaving Zentral.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

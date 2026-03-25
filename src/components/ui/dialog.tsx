@@ -31,56 +31,74 @@ function DialogClose({
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
-function DialogOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
-  return (
-    <DialogPrimitive.Overlay
-      data-slot="dialog-overlay"
-      className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
 function DialogContent({
   className,
   children,
+  title,
   showCloseButton = true,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  title?: string
   showCloseButton?: boolean
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
-      <DialogPrimitive.Content
-        data-slot="dialog-content"
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              className="absolute top-2 right-2"
-              size="icon-sm"
-            >
-              <XIcon
-              />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Content>
+      {/* Container scoped below titlebar — nothing escapes above 36px */}
+      <div className="fixed inset-x-0 bottom-0 top-[36px] z-50 pointer-events-none overflow-hidden">
+        {/* Overlay — fills the container */}
+        <DialogPrimitive.Overlay
+          data-slot="dialog-overlay"
+          className="absolute inset-0 pointer-events-auto bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+        />
+
+        {/* Content — centered within this container */}
+        <DialogPrimitive.Content
+          data-slot="dialog-content"
+          className={cn(
+            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-auto grid w-full max-w-[calc(100%-2rem)] gap-0 rounded-xl bg-popover text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            className
+          )}
+          {...props}
+          onPointerDownOutside={(e) => {
+            const originalEvent = e.detail?.originalEvent as PointerEvent | undefined;
+            if (originalEvent && originalEvent.clientY < 36) {
+              e.preventDefault();
+            }
+            props.onPointerDownOutside?.(e);
+          }}
+        >
+          {/* Built-in header */}
+          {title && (
+            <div data-slot="dialog-header" className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+              <DialogPrimitive.Title data-slot="dialog-title" className="text-sm font-semibold">
+                {title}
+              </DialogPrimitive.Title>
+              {showCloseButton && (
+                <DialogPrimitive.Close data-slot="dialog-close" asChild>
+                  <Button variant="ghost" className="h-7 w-7" size="icon-sm">
+                    <XIcon className="h-4 w-4" />
+                    <span className="sr-only">Close</span>
+                  </Button>
+                </DialogPrimitive.Close>
+              )}
+            </div>
+          )}
+          {!title && showCloseButton && (
+            <DialogPrimitive.Close data-slot="dialog-close" asChild>
+              <Button
+                variant="ghost"
+                className="absolute top-2 right-2"
+                size="icon-sm"
+              >
+                <XIcon />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DialogPrimitive.Close>
+          )}
+
+          {children}
+        </DialogPrimitive.Content>
+      </div>
     </DialogPortal>
   )
 }
@@ -89,7 +107,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("flex flex-col gap-2 pb-3 border-b", className)}
       {...props}
     />
   )
@@ -130,7 +148,7 @@ function DialogTitle({
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "text-base leading-none font-medium",
+        "text-sm leading-none font-semibold",
         className
       )}
       {...props}
@@ -161,7 +179,6 @@ export {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogOverlay,
   DialogPortal,
   DialogTitle,
   DialogTrigger,

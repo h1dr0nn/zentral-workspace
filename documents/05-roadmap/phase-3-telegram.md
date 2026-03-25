@@ -2,8 +2,8 @@
 
 > Adds remote access to Zentral through a Telegram bot, enabling messaging from Telegram with responses in both Telegram and the in-app chat UI.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

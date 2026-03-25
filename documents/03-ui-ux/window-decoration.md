@@ -2,8 +2,8 @@
 
 > Custom window chrome for Zentral, replacing native OS title bars with a fully React-rendered titlebar inside a Tauri v2 frameless window.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

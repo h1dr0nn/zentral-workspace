@@ -2,8 +2,8 @@
 
 > Quick action launcher providing keyboard-driven access to all commands via fuzzy search, triggered by `Ctrl+Shift+P`.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

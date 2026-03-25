@@ -2,8 +2,8 @@
 
 > Primary interaction surface displaying agent chat conversations with streaming responses, multi-agent delegation, and Telegram integration.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

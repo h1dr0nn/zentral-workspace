@@ -1,12 +1,17 @@
-import { 
-  Files, 
-  Boxes
+import {
+  Files,
+  Boxes,
+  Clock,
+  Workflow,
+  History,
+  BookOpen,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
 
 export function ActivityBar() {
-  const { activeTab, setActiveTab } = useUiStore();
+  const { activeTab, setActiveTab, setSettingsModalOpen } = useUiStore();
 
   type SidebarItem = {
     id: string;
@@ -18,6 +23,10 @@ export function ActivityBar() {
   const topItems: SidebarItem[] = [
     { id: "projects", icon: Files, label: "Projects" },
     { id: "skills", icon: Boxes, label: "Skills" },
+    { id: "schedules", icon: Clock, label: "Schedules" },
+    { id: "workflows", icon: Workflow, label: "Workflows" },
+    { id: "history", icon: History, label: "History" },
+    { id: "knowledge", icon: BookOpen, label: "Knowledge" },
   ];
 
   return (
@@ -59,6 +68,16 @@ export function ActivityBar() {
             </button>
           );
         })}
+      </div>
+
+      <div className="flex flex-col items-center w-full pb-2">
+        <button
+          onClick={() => setSettingsModalOpen(true)}
+          className="flex h-10 w-full items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+          title="Settings"
+        >
+          <Settings strokeWidth={1.5} className="h-5 w-5" />
+        </button>
       </div>
     </div>
   );

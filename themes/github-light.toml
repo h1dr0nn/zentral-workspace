@@ -1,0 +1,28 @@
+[theme]
+name = "GitHub Light"
+author = "GitHub"
+
+[theme.colors]
+foreground = "#24292e"
+background = "#ffffff"
+cursor = "#24292e"
+selection_bg = "#0366d625"
+selection_fg = "#24292e"
+
+black = "#24292e"
+red = "#d73a49"
+green = "#28a745"
+yellow = "#f9c513"
+blue = "#0366d6"
+magenta = "#5a32a3"
+cyan = "#0598bc"
+white = "#6a737d"
+
+bright_black = "#959da5"
+bright_red = "#cb2431"
+bright_green = "#22863a"
+bright_yellow = "#b08800"
+bright_blue = "#005cc5"
+bright_magenta = "#544490"
+bright_cyan = "#3192aa"
+bright_white = "#d1d5da"

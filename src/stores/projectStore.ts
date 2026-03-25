@@ -4,7 +4,7 @@ export interface Project {
   id: string;
   name: string;
   path: string;
-  language: string | null;
+  contextBadges: string[];
   lastOpenedAt: string;
 }
 
@@ -15,7 +15,7 @@ interface ProjectStore {
   setActiveProject: (id: string) => void;
   addProject: (project: Project) => void;
   removeProject: (id: string) => void;
-  reorderProjects: (fromIndex: number, toIndex: number) => void;
+  updateProject: (id: string, patch: Partial<Project>) => void;
 }
 
 export const useProjectStore = create<ProjectStore>((set) => ({
@@ -29,11 +29,8 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       projects: s.projects.filter((p) => p.id !== id),
       activeProjectId: s.activeProjectId === id ? null : s.activeProjectId,
     })),
-  reorderProjects: (fromIndex, toIndex) =>
-    set((s) => {
-      const projects = [...s.projects];
-      const [moved] = projects.splice(fromIndex, 1);
-      projects.splice(toIndex, 0, moved);
-      return { projects };
-    }),
+  updateProject: (id, patch) =>
+    set((s) => ({
+      projects: s.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    })),
 }));

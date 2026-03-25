@@ -2,8 +2,8 @@
 
 > Core application shell: a working single-agent chat app with persistent storage, a terminal panel, and the foundational UI framework.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

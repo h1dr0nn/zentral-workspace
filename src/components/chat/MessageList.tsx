@@ -6,8 +6,8 @@ import { useChatStore } from "@/stores/chatStore";
 import { MessageBubble } from "./MessageBubble";
 
 export function MessageList() {
-  const { activeAgentId, messagesByAgent, sendMessage } = useChatStore();
-  const messages = activeAgentId ? (messagesByAgent[activeAgentId] || []) : [];
+  const { activeAgentId, getMessages, sendMessage } = useChatStore();
+  const messages = activeAgentId ? getMessages(activeAgentId) : [];
   
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showJumpToBottom, setShowJumpToBottom] = useState(false);

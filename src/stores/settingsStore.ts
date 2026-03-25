@@ -1,50 +1,72 @@
 import { create } from "zustand";
 
 export interface Settings {
-  theme: "light" | "dark" | "system";
-  fontFamily: string;
+  // General
+  theme: string;
   fontSize: number;
-  telegramBotToken: string;
-  telegramChatId: string;
+  defaultShell: string;
+
+  // Agents
+  maxConcurrentAgents: number;
+  defaultAgentTimeout: number;
+  autoRestartOnCrash: boolean;
+  crashLoopThreshold: number;
+
+  // Telegram
   telegramEnabled: boolean;
-  defaultModel: string;
-  defaultMaxTokens: number;
+  telegramBotToken: string;
+  telegramAllowedChatIds: string;
+
+  // Advanced
+  chatRetention: "all" | "30days" | "7days";
+  claudeCliPath: string;
 }
 
 interface SettingsStore {
   settings: Settings;
-  isLoaded: boolean;
-
-  loadSettings: () => Promise<void>;
-  updateSettings: (patch: Partial<Settings>) => Promise<void>;
-  resetToDefaults: () => Promise<void>;
+  update: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  resetToDefaults: () => void;
 }
 
-const defaultSettings: Settings = {
-  theme: "dark",
-  fontFamily: "Inter",
+const DEFAULTS: Settings = {
+  theme: "",
   fontSize: 14,
-  telegramBotToken: "",
-  telegramChatId: "",
+  defaultShell: navigator.platform.includes("Win") ? "powershell.exe" : "/bin/bash",
+  maxConcurrentAgents: 5,
+  defaultAgentTimeout: 30,
+  autoRestartOnCrash: true,
+  crashLoopThreshold: 3,
   telegramEnabled: false,
-  defaultModel: "claude-sonnet-4-20250514",
-  defaultMaxTokens: 8192,
+  telegramBotToken: "",
+  telegramAllowedChatIds: "",
+  chatRetention: "all",
+  claudeCliPath: "",
 };
 
-export const useSettingsStore = create<SettingsStore>((set) => ({
-  settings: defaultSettings,
-  isLoaded: false,
+function load(): Settings {
+  try {
+    const raw = localStorage.getItem("zentral:settings");
+    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS };
+  } catch {
+    return { ...DEFAULTS };
+  }
+}
 
-  loadSettings: async () => {
-    // TODO: invoke("get_settings") from Rust
-    set({ isLoaded: true });
+function save(settings: Settings) {
+  try { localStorage.setItem("zentral:settings", JSON.stringify(settings)); } catch { /* quota exceeded */ }
+}
+
+export const useSettingsStore = create<SettingsStore>((set, get) => ({
+  settings: load(),
+
+  update: (key, value) => {
+    const updated = { ...get().settings, [key]: value };
+    set({ settings: updated });
+    save(updated);
   },
-  updateSettings: async (patch) => {
-    set((s) => ({ settings: { ...s.settings, ...patch } }));
-    // TODO: invoke("update_settings", patch) to Rust
-  },
-  resetToDefaults: async () => {
-    set({ settings: defaultSettings });
-    // TODO: invoke("update_settings", defaultSettings) to Rust
+
+  resetToDefaults: () => {
+    set({ settings: { ...DEFAULTS } });
+    save({ ...DEFAULTS });
   },
 }));

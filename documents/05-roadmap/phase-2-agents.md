@@ -2,8 +2,8 @@
 
 > Transforms Zentral from a single-agent chat app into a full multi-agent workspace with orchestration, skill-based specialization, and concurrent execution.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

@@ -2,8 +2,8 @@
 
 > Brings Zentral to production quality with focus on user experience, reliability, and operational readiness.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

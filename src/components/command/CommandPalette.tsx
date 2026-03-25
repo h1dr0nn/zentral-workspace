@@ -1,33 +1,95 @@
+import { useMemo } from "react";
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandShortcut,
+  CommandSeparator,
+} from "@/components/ui/command";
 import { useUiStore } from "@/stores/uiStore";
+import { COMMAND_ACTIONS, type CommandCategory } from "./actions";
+import { useCommandExecutor } from "./useCommandExecutor";
 
 export function CommandPalette() {
-  const { commandPaletteOpen, toggleCommandPalette } = useUiStore();
+  const open = useUiStore((s) => s.commandPaletteOpen);
+  const setOpen = useUiStore((s) => s.setCommandPaletteOpen);
+  const recentActionIds = useUiStore((s) => s.recentActionIds);
+  const addRecentAction = useUiStore((s) => s.addRecentAction);
+  const execute = useCommandExecutor();
 
-  if (!commandPaletteOpen) return null;
+  const grouped = useMemo(() => {
+    const map = new Map<CommandCategory, typeof COMMAND_ACTIONS>();
+    for (const action of COMMAND_ACTIONS) {
+      const list = map.get(action.category) || [];
+      list.push(action);
+      map.set(action.category, list);
+    }
+    return map;
+  }, []);
+
+  const recentActions = useMemo(
+    () =>
+      recentActionIds
+        .map((id) => COMMAND_ACTIONS.find((a) => a.id === id))
+        .filter((a) => a != null),
+    [recentActionIds]
+  );
+
+  const handleSelect = (actionId: string) => {
+    addRecentAction(actionId);
+    execute(actionId);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-background/80 backdrop-blur-sm">
-      <div className="w-[600px] max-w-full rounded-xl border bg-card text-card-foreground shadow-lg">
-        <div className="flex items-center border-b px-4 py-3">
-          <input
-            autoFocus
-            className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-            placeholder="Type a command or search..."
-          />
-          <button 
-            type="button"
-            className="ml-2 text-xs text-muted-foreground hover:text-foreground"
-            onClick={toggleCommandPalette}
-          >
-            ESC
-          </button>
-        </div>
-        <div className="p-4">
-          <p className="text-sm text-muted-foreground text-center py-8">
-            Command palette implementation pending...
-          </p>
-        </div>
-      </div>
-    </div>
+    <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandInput placeholder="Type a command or search..." />
+      <CommandList>
+        <CommandEmpty>No results found.</CommandEmpty>
+
+        {recentActions.length > 0 && (
+          <>
+            <CommandGroup heading="Recent">
+              {recentActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <CommandItem
+                    key={`recent-${action.id}`}
+                    value={action.label}
+                    onSelect={() => handleSelect(action.id)}
+                  >
+                    {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                    {action.label}
+                    {action.shortcut && <CommandShortcut>{action.shortcut}</CommandShortcut>}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
+
+        {Array.from(grouped.entries()).map(([category, actions]) => (
+          <CommandGroup key={category} heading={category}>
+            {actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <CommandItem
+                  key={action.id}
+                  value={`${action.label} ${(action.keywords || []).join(" ")}`}
+                  onSelect={() => handleSelect(action.id)}
+                >
+                  {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                  {action.label}
+                  {action.shortcut && <CommandShortcut>{action.shortcut}</CommandShortcut>}
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ))}
+      </CommandList>
+    </CommandDialog>
   );
 }

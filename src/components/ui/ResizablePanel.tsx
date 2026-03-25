@@ -11,9 +11,8 @@ export function ResizablePanelGroup({
   className,
   direction,
   ...props
-}: GroupProps & { direction: "horizontal" | "vertical" }) {
-  // @ts-expect-error Types in this react-resizable-panels version miss direction on Group
-  return <Group direction={direction} className={cn("flex h-full w-full", className)} {...props} />;
+}: Omit<GroupProps, "orientation"> & { direction: "horizontal" | "vertical" }) {
+  return <Group orientation={direction} className={cn("flex h-full w-full", className)} {...props} />;
 }
 
 export const ResizablePanel = Panel;

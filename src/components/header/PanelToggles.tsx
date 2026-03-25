@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { useUiStore } from "@/stores/uiStore";
 
 function PanelLeftIcon({ filled }: { filled: boolean }) {
@@ -38,6 +39,7 @@ export function PanelToggles() {
     toggleLeftSidebar,
     toggleTerminal,
     toggleRightSidebar,
+    toggleCommandPalette,
   } = useUiStore();
 
   const baseClass =
@@ -46,7 +48,7 @@ export function PanelToggles() {
   const getButtonClass = (isActive: boolean) =>
     `${baseClass} ${
       isActive
-        ? "bg-muted text-foreground"
+        ? "bg-transparent text-foreground"
         : "bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
     }`;
 
@@ -75,6 +77,14 @@ export function PanelToggles() {
         title="Toggle Right Sidebar (Ctrl+Shift+B)"
       >
         <PanelRightIcon filled={rightSidebarOpen} />
+      </button>
+      <button
+        type="button"
+        className={`${baseClass} bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground`}
+        onClick={toggleCommandPalette}
+        title="Command Palette (Ctrl+Shift+P)"
+      >
+        <Search className="h-4 w-4" />
       </button>
     </div>
   );

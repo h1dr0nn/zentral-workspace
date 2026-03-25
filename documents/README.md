@@ -3,7 +3,7 @@
 > Complete documentation for Zentral — Claude Multi-Agent Workspace.
 
 > **Status:** draft
-> **Last updated:** 2026-03-24
+> **Last updated:** 2026-03-25
 
 ---
 
@@ -36,6 +36,10 @@ Within each section, documents are self-contained but may cross-reference one an
 | [PTY Handling](02-specifications/pty-handling.md) | Cross-platform pseudo-terminal for embedded terminal panel |
 | [Persistence](02-specifications/persistence.md) | SQLite schema, migrations, CRUD operations |
 | [Streaming Protocol](02-specifications/streaming-protocol.md) | NDJSON parsing, event types, abort mechanism |
+| [Schedules](02-specifications/schedules.md) | Recurring task scheduler, cron expressions, scheduling engine |
+| [Workflows](02-specifications/workflows.md) | Multi-step agent pipelines, branching logic, execution engine |
+| [Activity History](02-specifications/activity-history.md) | Event log, filtering, retention policy |
+| [Knowledge Base](02-specifications/knowledge-base.md) | Document repository, categories, agent context injection |
 
 ## 03 -- UI/UX
 
@@ -51,6 +55,10 @@ Within each section, documents are self-contained but may cross-reference one an
 | [Settings Modal](03-ui-ux/settings-modal.md) | Configuration UI with tabs |
 | [Themes](03-ui-ux/themes.md) | CSS variable theming, light/dark mode |
 | [Keyboard Shortcuts](03-ui-ux/keyboard-shortcuts.md) | Default keybindings, customization |
+| [Left Sidebar -- Schedules](03-ui-ux/sidebar-left-schedules.md) | Schedule cards, toggle controls, creation dialog |
+| [Left Sidebar -- Workflows](03-ui-ux/sidebar-left-workflows.md) | Workflow cards, step pipeline, detail view |
+| [Left Sidebar -- History](03-ui-ux/sidebar-left-history.md) | Activity timeline, event cards, filters, date grouping |
+| [Left Sidebar -- Knowledge](03-ui-ux/sidebar-left-knowledge.md) | Document list, category groups, detail view, search |
 
 ## 04 -- Development
 
@@ -66,11 +74,12 @@ Within each section, documents are self-contained but may cross-reference one an
 
 | Document | Description |
 |----------|-------------|
-| [Roadmap](05-roadmap/roadmap.md) | 4-phase overview and MVP definition |
+| [Roadmap](05-roadmap/roadmap.md) | 5-phase overview and MVP definition |
 | [Phase 1 -- Foundation](05-roadmap/phase-1-foundation.md) | Tauri scaffold, SQLite, single agent, basic UI |
 | [Phase 2 -- Agents](05-roadmap/phase-2-agents.md) | Multi-agent system, secretary, skill pool |
 | [Phase 3 -- Telegram](05-roadmap/phase-3-telegram.md) | Telegram bot integration |
 | [Phase 4 -- Polish](05-roadmap/phase-4-polish.md) | Themes, command palette, auto-update, performance |
+| [Phase 5 -- Automation](05-roadmap/phase-5-automation.md) | Schedules, workflows, activity history, knowledge base |
 
 ## 06 -- Research
 

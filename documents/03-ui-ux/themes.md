@@ -2,8 +2,8 @@
 
 > Theming system using CSS custom properties and Tailwind CSS v4 `@theme inline` directive with built-in light and dark palettes.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 

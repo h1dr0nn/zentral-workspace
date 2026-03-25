@@ -1,56 +1,80 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Send, Square } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Send,
+  Square,
+  ShieldCheck,
+  ShieldOff,
+  FileEdit,
+  Map,
+  Check,
+  X,
+} from "lucide-react";
 import { useChatStore } from "@/stores/chatStore";
 
+const PERMISSION_OPTIONS: readonly { id: string; label: string; desc: string; icon: typeof ShieldCheck; warning?: boolean }[] = [
+  { id: "ask", label: "Ask permissions", desc: "Always ask before making changes", icon: ShieldCheck },
+  { id: "auto", label: "Auto accept edits", desc: "Automatically accept all file edits", icon: FileEdit },
+  { id: "plan", label: "Plan mode", desc: "Create a plan before making changes", icon: Map },
+  { id: "bypass", label: "Bypass permissions", desc: "Accepts all permissions", icon: ShieldOff, warning: true },
+];
+
+const MODEL_OPTIONS = [
+  { id: "opus-4.6-1m", label: "Opus 4.6 (1M context)", desc: "Most capable for ambitious work" },
+  { id: "opus-4.6", label: "Opus 4.6", desc: "Most capable for ambitious work" },
+  { id: "sonnet-4.6", label: "Sonnet 4.6", desc: "Most efficient for everyday tasks" },
+  { id: "haiku-4.5", label: "Haiku 4.5", desc: "Fastest for quick answers" },
+] as const;
+
 export function ChatInput() {
-  const { activeAgentId, sendMessage, streamingByAgent, stopStream } = useChatStore();
+  const { activeAgentId, sendMessage, getIsStreaming, stopStream } = useChatStore();
   const [inputVal, setInputVal] = useState("");
+  const [images, setImages] = useState<{ id: string; url: string; file: File }[]>([]);
+  const [permission, setPermission] = useState("auto");
+  const [model, setModel] = useState("opus-4.6-1m");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const isStreaming = activeAgentId ? streamingByAgent[activeAgentId] : false;
+  const isStreaming = activeAgentId ? getIsStreaming(activeAgentId) : false;
 
-  const handleInput = () => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  const addImages = (files: File[]) => {
+    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    const newImages = imageFiles.map((file) => ({
+      id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      url: URL.createObjectURL(file),
+      file,
+    }));
+    setImages((prev) => [...prev, ...newImages]);
+  };
+
+  const removeImage = (id: string) => {
+    setImages((prev) => {
+      const img = prev.find((i) => i.id === id);
+      if (img) URL.revokeObjectURL(img.url);
+      return prev.filter((i) => i.id !== id);
+    });
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const files = Array.from(e.clipboardData.files);
+    if (files.length > 0) {
+      addImages(files);
+    }
   };
 
   const handleSend = () => {
-    if (!inputVal.trim() || !activeAgentId) return;
+    if ((!inputVal.trim() && images.length === 0) || !activeAgentId) return;
     sendMessage(activeAgentId, inputVal.trim(), "user", "local");
     setInputVal("");
-    
-    // Simulate streaming response
-    const msgId = `msg-${Date.now()}`;
-    const chunks = ["Thinking...", " Here", " is", " the", " result", " of", " your", " query."];
-    let i = 0;
-    
-    // Fake typing simulation
-    const interval = setInterval(() => {
-      // Check if streaming was stopped manually
-      const stillStreaming = useChatStore.getState().streamingByAgent[activeAgentId];
-      if (!stillStreaming && i > 0) { // Check if it was manually aborted
-        clearInterval(interval);
-        return;
-      }
-      
-      if (i < chunks.length) {
-        useChatStore.getState().appendStreamChunk(activeAgentId, msgId, chunks[i]);
-        i++;
-      } else {
-        useChatStore.getState().stopStream(activeAgentId);
-        clearInterval(interval);
-      }
-    }, 400);
-
-    // Initial trigger to start streaming state immediately
-    useChatStore.getState().appendStreamChunk(activeAgentId, msgId, "");
-    
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
+    // Clear images (revoke URLs)
+    images.forEach((img) => URL.revokeObjectURL(img.url));
+    setImages([]);
+    // TODO: send message to Tauri backend for agent processing
   };
 
   const handleStop = () => {
@@ -66,24 +90,112 @@ export function ChatInput() {
     }
   };
 
-  useEffect(() => {
-    handleInput(); // Resize on init
-  }, [inputVal]);
+
+  const selectedModel = MODEL_OPTIONS.find((m) => m.id === model)!;
 
   return (
     <div className="px-4 pb-4 pt-0 bg-background relative z-20">
-      <div className="relative flex w-full max-w-3xl mx-auto flex-col rounded-xl border bg-background shadow-sm focus-within:ring-1 focus-within:ring-ring">
+      <div className="flex w-full flex-col rounded-xl border bg-sidebar shadow-sm focus-within:ring-1 focus-within:ring-ring">
+        {/* Attachment preview */}
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-3 pt-3">
+            {images.map((img) => (
+              <div
+                key={img.id}
+                className="group flex items-center gap-2 rounded-lg bg-muted px-2 py-1.5"
+              >
+                <img
+                  src={img.url}
+                  alt={img.file.name}
+                  className="h-8 w-8 rounded object-cover"
+                />
+                <div className="flex flex-col text-xs leading-tight">
+                  <span className="font-medium text-foreground max-w-[120px] truncate">{img.file.name}</span>
+                  <span className="text-muted-foreground">
+                    {Math.round(img.file.size / 1024)} KB
+                  </span>
+                </div>
+                <button
+                  onClick={() => removeImage(img.id)}
+                  className="ml-1 rounded-sm p-0.5 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-background transition-all"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Textarea area */}
         <textarea
           ref={textareaRef}
+          data-chat-input
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Type a message..."
           disabled={isStreaming}
-          className="min-h-[60px] max-h-[200px] w-full resize-none rounded-xl bg-transparent px-4 py-3 pb-12 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 flex-1 overflow-x-hidden"
+          className="h-[100px] w-full resize-none rounded-t-xl bg-transparent px-4 py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 overflow-y-auto overflow-wrap-anywhere [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
         />
-        <div className="absolute bottom-2 right-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+
+        {/* Toolbar — separate row */}
+        <div className="flex items-center justify-between px-2 pb-2">
+          {/* Permission dropdown — left */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <FileEdit className="h-3.5 w-3.5" />
+                <span>{PERMISSION_OPTIONS.find((p) => p.id === permission)?.label}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={8} className="w-64">
+              {PERMISSION_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                return (
+                  <DropdownMenuItem
+                    key={opt.id}
+                    onClick={() => setPermission(opt.id)}
+                    className="flex items-start gap-2.5 py-2"
+                  >
+                    <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${opt.warning ? "text-yellow-500" : ""}`} />
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm font-medium">{opt.label}</span>
+                      <span className="text-xs text-muted-foreground">{opt.desc}</span>
+                    </div>
+                    {permission === opt.id && <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="flex items-center gap-1">
+            {/* Model dropdown — right */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                  <span>{selectedModel.label}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" sideOffset={8} className="w-64">
+                {MODEL_OPTIONS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.id}
+                    onClick={() => setModel(opt.id)}
+                    className="flex items-start gap-2.5 py-2"
+                  >
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm font-medium">{opt.label}</span>
+                      <span className="text-xs text-muted-foreground">{opt.desc}</span>
+                    </div>
+                    {model === opt.id && <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Send / Stop button */}
             {isStreaming ? (
               <Button size="icon" variant="destructive" onClick={handleStop} className="h-8 w-8 rounded-lg">
                 <Square className="h-4 w-4 fill-current" />

@@ -2,8 +2,8 @@
 
 > Agent management panel displaying configured agents with real-time status, roles, and skill badges.
 
-> **Status:** draft
-> **Last updated:** 2026-03-24
+> **Status:** ui-complete
+> **Last updated:** 2026-03-25
 
 ---
 
