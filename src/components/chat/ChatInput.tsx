@@ -16,7 +16,14 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { useChatStore } from "@/stores/chatStore";
+import { useAgentStore } from "@/stores/agentStore";
+import { useAuthStore } from "@/stores/authStore";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { buildContextFromBudget } from "@/lib/tokenBudget";
+import { useOrchestrationStore } from "@/stores/orchestrationStore";
+import { useDiscussionStore } from "@/stores/discussionStore";
 
 const PERMISSION_OPTIONS: readonly { id: string; label: string; desc: string; icon: typeof ShieldCheck; warning?: boolean }[] = [
   { id: "ask", label: "Ask permissions", desc: "Always ask before making changes", icon: ShieldCheck },
@@ -31,6 +38,13 @@ const MODEL_OPTIONS = [
   { id: "sonnet-4.6", label: "Sonnet 4.6", desc: "Most efficient for everyday tasks" },
   { id: "haiku-4.5", label: "Haiku 4.5", desc: "Fastest for quick answers" },
 ] as const;
+
+const MODEL_MAP: Record<string, string> = {
+  "opus-4.6-1m": "claude-opus-4-6",
+  "opus-4.6": "claude-opus-4-6",
+  "sonnet-4.6": "claude-sonnet-4-6",
+  "haiku-4.5": "claude-haiku-4-5-20251001",
+};
 
 export function ChatInput() {
   const { activeAgentId, sendMessage, getIsStreaming, stopStream } = useChatStore();
@@ -69,12 +83,62 @@ export function ChatInput() {
 
   const handleSend = () => {
     if ((!inputVal.trim() && images.length === 0) || !activeAgentId) return;
-    sendMessage(activeAgentId, inputVal.trim(), "user", "local");
+    const text = inputVal.trim();
+    sendMessage(activeAgentId, text, "user", "local");
     setInputVal("");
     // Clear images (revoke URLs)
     images.forEach((img) => URL.revokeObjectURL(img.url));
     setImages([]);
-    // TODO: send message to Tauri backend for agent processing
+
+    // Send to backend if signed in
+    const loggedIn = useAuthStore.getState().loggedIn;
+    if (!loggedIn) return;
+
+    // Room modes → orchestration or discussion engine
+    if (activeAgentId === "command") {
+      useOrchestrationStore.getState().startOrchestration(text, MODEL_MAP[model] ?? model);
+      return;
+    }
+    if (activeAgentId === "discussion") {
+      useDiscussionStore.getState().startDiscussion(text, MODEL_MAP[model] ?? model);
+      return;
+    }
+
+    // Direct agent chat
+    const agent = useAgentStore.getState().agents.find((a) => a.id === activeAgentId);
+    const agentName = agent?.name ?? "Assistant";
+    const agentRole = agent?.role ?? "General";
+    const systemPrompt = agent?.isSecretary
+      ? `You are ${agentName}, the orchestrator of the Zentral workspace — a multi-agent desktop app created by h1dr0n. You coordinate tasks between specialized agents (Vex for Git, Koda for Code, Prova for Testing, etc.). Be helpful, concise, and proactive. Always respond in the same language the user uses.`
+      : `You are ${agentName}, a specialized agent with the role: ${agentRole}, working inside the Zentral workspace created by h1dr0n. Be helpful and concise. Always respond in the same language the user uses.`;
+
+    // Build conversation history for context (if memory enabled)
+    const memoryOn = useChatStore.getState().memoryEnabled;
+    const budget = useSettingsStore.getState().settings.chatTokenBudget;
+    let fullMessage = text;
+
+    if (memoryOn) {
+      const messages = useChatStore.getState().getMessages(activeAgentId);
+      const history = buildContextFromBudget(messages, budget || 4000);
+      if (history) {
+        fullMessage = `${history}\n\nHuman: ${text}`;
+      }
+    }
+
+    const msgId = `msg-${Date.now()}-agent`;
+    // Create empty streaming message in store
+    useChatStore.getState().appendStreamChunk(activeAgentId, msgId, "");
+
+    invoke("send_chat_message", {
+      agentId: activeAgentId,
+      messageId: msgId,
+      message: fullMessage,
+      systemPrompt,
+      model: MODEL_MAP[model] ?? model,
+    }).catch((err) => {
+      useChatStore.getState().stopStream(activeAgentId);
+      console.error("send_chat_message failed:", err);
+    });
   };
 
   const handleStop = () => {
