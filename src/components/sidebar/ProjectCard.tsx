@@ -36,7 +36,7 @@ export function ProjectCard({ project, isActive }: ProjectCardProps) {
   const handleSelect = () => {
     if (editing) return;
     setActiveProject(project.id);
-    setActiveAgent("general");
+    setActiveAgent("command");
   };
 
   const commitRename = () => {
