@@ -39,6 +39,10 @@ interface WorkflowStore {
   removeStep: (workflowId: string, stepId: string) => Promise<void>;
   updateStep: (workflowId: string, stepId: string, patch: Partial<WorkflowStep>) => Promise<void>;
   reorderSteps: (workflowId: string, stepIds: string[]) => Promise<void>;
+
+  // Execution
+  runWorkflow: (id: string) => Promise<string | null>;
+  cancelRun: (runId: string) => Promise<void>;
 }
 
 function normalizeStep(raw: any): WorkflowStep {
@@ -206,6 +210,27 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       }));
     } catch (err) {
       console.error("Failed to reorder steps:", err);
+    }
+  },
+
+  runWorkflow: async (id) => {
+    try {
+      const runId: string = await invoke("run_workflow", { workflowId: id });
+      // Refresh workflows to get updated last_run_at
+      const raw = await invoke("list_workflows");
+      set({ workflows: (raw as any[]).map(normalize) });
+      return runId;
+    } catch (err) {
+      console.error("Failed to run workflow:", err);
+      return null;
+    }
+  },
+
+  cancelRun: async (runId) => {
+    try {
+      await invoke("cancel_workflow_run", { runId });
+    } catch (err) {
+      console.error("Failed to cancel run:", err);
     }
   },
 }));

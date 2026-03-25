@@ -1,4 +1,5 @@
 mod agent;
+mod automation;
 mod commands;
 mod config;
 pub mod persistence;
@@ -6,6 +7,7 @@ mod process;
 mod project;
 mod telegram;
 
+use tauri::Manager;
 use commands::{
     agent as agent_cmd, auth as auth_cmd, chat as chat_cmd, config as config_cmd,
     history as history_cmd, knowledge as knowledge_cmd, migration as migration_cmd,
@@ -72,6 +74,9 @@ pub fn run() {
             workflow_cmd::create_workflow,
             workflow_cmd::update_workflow,
             workflow_cmd::delete_workflow,
+            workflow_cmd::run_workflow,
+            workflow_cmd::get_workflow_run,
+            workflow_cmd::cancel_workflow_run,
             // History
             history_cmd::list_history,
             history_cmd::add_history_event,
@@ -103,6 +108,19 @@ pub fn run() {
             migration_cmd::import_knowledge,
             migration_cmd::mark_migration_complete,
         ])
+        .setup(|app| {
+            // Start the schedule execution engine
+            let db_for_scheduler = app.state::<persistence::Db>().inner().clone();
+            let app_handle = app.handle().clone();
+            let settings = app.state::<config::AppSettings>();
+            let claude_path = {
+                let p = settings.claude_cli_path.lock().unwrap().clone();
+                if p.is_empty() { "claude".to_string() } else { p }
+            };
+            let model = settings.default_model.lock().unwrap().clone();
+            automation::scheduler::start(db_for_scheduler, app_handle, claude_path, model);
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

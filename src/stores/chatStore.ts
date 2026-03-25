@@ -67,7 +67,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   roomMode: "command",
   activeAgentId: "command",
 
-  setActiveAgent: (agentId) => set({ activeAgentId: agentId }),
+  setActiveAgent: (agentId) => {
+    set({ activeAgentId: agentId });
+    // Load messages from SQLite for this agent
+    const projectId = useProjectStore.getState().activeProjectId;
+    if (projectId) {
+      get().loadMessages(projectId, agentId);
+    }
+  },
   setMemoryEnabled: (enabled) => set({ memoryEnabled: enabled }),
   setRoomMode: (mode) => set({ roomMode: mode }),
 
@@ -83,9 +90,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   loadMessages: async (projectId, agentId) => {
     const key = chatKey(projectId, agentId);
-    // Skip if already loaded
-    if (get().messagesByKey[key]?.length) return;
     try {
+      // Don't overwrite if currently streaming
+      if (get().streamingByKey[key]) return;
+
       const rows: any[] = await invoke("get_chat_messages", { chatKey: key });
       const messages: ChatMessage[] = rows.map((r) => ({
         id: r.id,
@@ -96,11 +104,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         source: r.source,
         isStreaming: false,
       }));
-      if (messages.length) {
-        set((s) => ({
-          messagesByKey: { ...s.messagesByKey, [key]: messages },
-        }));
-      }
+      set((s) => ({
+        messagesByKey: { ...s.messagesByKey, [key]: messages },
+      }));
     } catch (err) {
       console.error("Failed to load chat messages:", err);
     }
@@ -191,24 +197,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
       };
     }),
 
-  stopStream: (agentId, chatKeyOverride) =>
-    set((state) => {
+  stopStream: (agentId, chatKeyOverride) => {
       const projectId = useProjectStore.getState().activeProjectId;
       const key = chatKeyOverride ? chatKey(projectId, chatKeyOverride) : chatKey(projectId, agentId);
+      const state = get();
       const messages = state.messagesByKey[key] || [];
+
+      // Find all messages that were streaming and persist them
+      const streamingMsgs = messages.filter((m) => m.isStreaming);
       const updated = messages.map((msg) =>
         msg.isStreaming ? { ...msg, isStreaming: false } : msg
       );
-      // Persist the final agent message to SQLite
-      const agentMsg = updated.find((m) => m.isStreaming === false && m.role === "agent" && messages.some((om) => om.id === m.id && om.isStreaming));
-      if (agentMsg) {
-        get().persistMessage(key, agentMsg);
+
+      // Persist each completed streaming message
+      for (const msg of streamingMsgs) {
+        const final_ = updated.find((m) => m.id === msg.id);
+        if (final_) {
+          get().persistMessage(key, final_);
+        }
       }
-      return {
+
+      set({
         streamingByKey: { ...state.streamingByKey, [key]: false },
         messagesByKey: { ...state.messagesByKey, [key]: updated },
-      };
-    }),
+      });
+    },
 
   setMessages: (agentId, messages) =>
     set((state) => {

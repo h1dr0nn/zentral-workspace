@@ -1,6 +1,8 @@
 use crate::persistence::Db;
 use crate::persistence::models::{WorkflowRow, WorkflowStepRow};
+use crate::persistence::workflow_runs;
 use serde::{Deserialize, Serialize};
+use tauri::Manager;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowStepDto {
@@ -145,6 +147,110 @@ pub async fn delete_workflow(db: tauri::State<'_, Db>, id: String) -> Result<(),
     tokio::task::spawn_blocking(move || {
         let conn = db.lock().map_err(|e| e.to_string())?;
         crate::persistence::workflows::delete(&conn, &id).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// ── Workflow Execution Commands ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowRunDto {
+    pub id: String,
+    pub workflow_id: String,
+    pub status: String,
+    pub current_step: Option<String>,
+    pub started_at: String,
+    pub completed_at: Option<String>,
+    pub step_results: Vec<StepResultDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StepResultDto {
+    pub id: String,
+    pub step_id: String,
+    pub agent_id: String,
+    pub skill_id: String,
+    pub status: String,
+    pub output: Option<String>,
+    pub duration_ms: Option<i64>,
+}
+
+#[tauri::command]
+pub async fn run_workflow(
+    db: tauri::State<'_, Db>,
+    app: tauri::AppHandle,
+    workflow_id: String,
+) -> Result<String, String> {
+    let db = db.inner().clone();
+
+    // Get Claude config
+    let state = app.state::<crate::config::AppSettings>();
+    let claude_path = {
+        let p = state.claude_cli_path.lock().unwrap().clone();
+        if p.is_empty() { "claude".to_string() } else { p }
+    };
+    let model = state.default_model.lock().unwrap().clone();
+
+    tokio::task::spawn_blocking(move || {
+        crate::automation::workflow_runner::execute(&db, &app, &workflow_id, &claude_path, &model)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn get_workflow_run(
+    db: tauri::State<'_, Db>,
+    run_id: String,
+) -> Result<Option<WorkflowRunDto>, String> {
+    let db = db.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        let run = workflow_runs::get_run(&conn, &run_id).map_err(|e| e.to_string())?;
+        match run {
+            Some(r) => {
+                let results = workflow_runs::list_step_results(&conn, &r.id)
+                    .map_err(|e| e.to_string())?;
+                Ok(Some(WorkflowRunDto {
+                    id: r.id,
+                    workflow_id: r.workflow_id,
+                    status: r.status,
+                    current_step: r.current_step,
+                    started_at: r.started_at,
+                    completed_at: r.completed_at,
+                    step_results: results.into_iter().map(|sr| StepResultDto {
+                        id: sr.id,
+                        step_id: sr.step_id,
+                        agent_id: sr.agent_id,
+                        skill_id: sr.skill_id,
+                        status: sr.status,
+                        output: sr.output,
+                        duration_ms: sr.duration_ms,
+                    }).collect(),
+                }))
+            }
+            None => Ok(None),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn cancel_workflow_run(
+    db: tauri::State<'_, Db>,
+    run_id: String,
+) -> Result<(), String> {
+    let db = db.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        if let Some(mut run) = workflow_runs::get_run(&conn, &run_id).map_err(|e| e.to_string())? {
+            run.status = "cancelled".into();
+            run.completed_at = Some(chrono::Utc::now().to_rfc3339());
+            workflow_runs::update_run(&conn, &run).map_err(|e| e.to_string())?;
+        }
+        Ok(())
     })
     .await
     .map_err(|e| e.to_string())?

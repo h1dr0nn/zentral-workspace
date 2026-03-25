@@ -2,6 +2,7 @@ use rusqlite::Connection;
 
 const MIGRATIONS: &[(i32, &str)] = &[
     (1, include_str!("../../migrations/001_initial.sql")),
+    (2, include_str!("../../migrations/002_workflow_runs.sql")),
 ];
 
 /// Run all pending migrations. Idempotent — safe to call on every startup.

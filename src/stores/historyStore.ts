@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 export type HistoryEventType =
   | "skill_run"
@@ -131,3 +132,12 @@ export const useHistoryStore = create<HistoryStore>((set) => ({
 
   resetFilter: () => set({ filter: DEFAULT_FILTER }),
 }));
+
+// Listen for history events emitted by backend engines (scheduler, workflow runner)
+listen<any>("history:new-event", (event) => {
+  const raw = event.payload;
+  const normalized = normalize(raw);
+  useHistoryStore.setState((s) => ({
+    events: [normalized, ...s.events],
+  }));
+});

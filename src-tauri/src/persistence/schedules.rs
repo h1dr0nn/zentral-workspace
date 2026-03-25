@@ -45,3 +45,28 @@ pub fn delete(conn: &Connection, id: &str) -> Result<(), rusqlite::Error> {
     conn.execute("DELETE FROM schedules WHERE id = ?1", params![id])?;
     Ok(())
 }
+
+/// Return schedules that are active and due (next_run_at <= now).
+pub fn list_due(conn: &Connection, now: &str) -> Result<Vec<ScheduleRow>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, agent_id, skill_id, project_id, frequency, cron_expression, prompt, description, status, next_run_at, last_run_at, created_at FROM schedules WHERE status = 'active' AND next_run_at <= ?1"
+    )?;
+    let rows = stmt.query_map(params![now], |row| {
+        Ok(ScheduleRow {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            agent_id: row.get(2)?,
+            skill_id: row.get(3)?,
+            project_id: row.get(4)?,
+            frequency: row.get(5)?,
+            cron_expression: row.get(6)?,
+            prompt: row.get(7)?,
+            description: row.get(8)?,
+            status: row.get(9)?,
+            next_run_at: row.get(10)?,
+            last_run_at: row.get(11)?,
+            created_at: row.get(12)?,
+        })
+    })?;
+    rows.collect()
+}

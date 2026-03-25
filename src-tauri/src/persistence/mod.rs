@@ -10,6 +10,10 @@ pub mod schedules;
 pub mod workflows;
 pub mod history;
 pub mod knowledge;
+pub mod workflow_runs;
+
+#[cfg(test)]
+mod tests;
 
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
@@ -36,5 +40,14 @@ impl Database {
         migrations::run(&conn)?;
 
         Ok(Arc::new(Mutex::new(conn)))
+    }
+
+    /// Create an in-memory database for testing.
+    #[cfg(test)]
+    pub fn init_memory() -> Result<Connection, Box<dyn std::error::Error>> {
+        let conn = Connection::open_in_memory()?;
+        conn.execute_batch("PRAGMA foreign_keys=ON;")?;
+        migrations::run(&conn)?;
+        Ok(conn)
     }
 }
