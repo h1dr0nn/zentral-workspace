@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { loadArray, autoSave } from "./persist";
 
 export type KnowledgeCategory = "notes" | "references" | "specs" | "guidelines";
 
@@ -25,7 +26,7 @@ interface KnowledgeStore {
 }
 
 export const useKnowledgeStore = create<KnowledgeStore>((set) => ({
-  documents: [],
+  documents: loadArray<KnowledgeDocument>("zentral:knowledge"),
   activeDocumentId: null,
 
   addDocument: (doc) => {
@@ -51,3 +52,5 @@ export const useKnowledgeStore = create<KnowledgeStore>((set) => ({
 
   setActiveDocument: (id) => set({ activeDocumentId: id }),
 }));
+
+autoSave(useKnowledgeStore, "zentral:knowledge", (s) => s.documents);

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { loadArray, autoSave } from "./persist";
 
 export type WorkflowStatus = "draft" | "active" | "paused";
 
@@ -39,7 +40,7 @@ interface WorkflowStore {
 }
 
 export const useWorkflowStore = create<WorkflowStore>((set) => ({
-  workflows: [],
+  workflows: loadArray<Workflow>("zentral:workflows"),
   activeWorkflowId: null,
 
   addWorkflow: (workflow) => {
@@ -114,3 +115,5 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
       }),
     })),
 }));
+
+autoSave(useWorkflowStore, "zentral:workflows", (s) => s.workflows);

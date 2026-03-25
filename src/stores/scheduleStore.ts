@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { loadArray, autoSave } from "./persist";
 
 export type ScheduleFrequency = "daily" | "weekly" | "monthly" | "custom";
 export type ScheduleStatus = "active" | "paused" | "disabled";
@@ -28,7 +29,7 @@ interface ScheduleStore {
 }
 
 export const useScheduleStore = create<ScheduleStore>((set) => ({
-  schedules: [],
+  schedules: loadArray<Schedule>("zentral:schedules"),
 
   addSchedule: (schedule) => {
     const id = `sched-${Date.now()}`;
@@ -54,3 +55,5 @@ export const useScheduleStore = create<ScheduleStore>((set) => ({
       ),
     })),
 }));
+
+autoSave(useScheduleStore, "zentral:schedules", (s) => s.schedules);

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { loadArray, autoSave } from "./persist";
 
 export type AgentStatus = "online" | "idle" | "running" | "error" | "stopped" | "queued";
 
@@ -116,8 +117,20 @@ const BUILTIN_AGENTS: Agent[] = [
   },
 ];
 
+function loadAgents(): Agent[] {
+  const saved = loadArray<Agent>("zentral:agents");
+  if (saved.length === 0) return BUILTIN_AGENTS;
+  // Merge: use saved data for builtins (preserves projectIds etc), add any new builtins
+  const savedMap = new Map(saved.map((a) => [a.id, a]));
+  const merged = BUILTIN_AGENTS.map((b) => savedMap.get(b.id) ?? b);
+  // Append any custom (non-builtin) agents
+  const builtinIds = new Set(BUILTIN_AGENTS.map((b) => b.id));
+  const custom = saved.filter((a) => !builtinIds.has(a.id));
+  return [...merged, ...custom];
+}
+
 export const useAgentStore = create<AgentStore>((set) => ({
-  agents: BUILTIN_AGENTS,
+  agents: loadAgents(),
 
   addAgent: (agent) => set((s) => ({ agents: [...s.agents, agent] })),
   removeAgent: (id) =>
@@ -149,3 +162,5 @@ export const useAgentStore = create<AgentStore>((set) => ({
       ),
     })),
 }));
+
+autoSave(useAgentStore, "zentral:agents", (s) => s.agents);

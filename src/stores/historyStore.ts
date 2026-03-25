@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { loadArray, autoSave } from "./persist";
 
 export type HistoryEventType =
   | "skill_run"
@@ -50,7 +51,7 @@ const DEFAULT_FILTER: HistoryFilter = {
 };
 
 export const useHistoryStore = create<HistoryStore>((set) => ({
-  events: [],
+  events: loadArray<HistoryEvent>("zentral:history"),
   filter: DEFAULT_FILTER,
 
   addEvent: (event) => {
@@ -65,3 +66,5 @@ export const useHistoryStore = create<HistoryStore>((set) => ({
 
   resetFilter: () => set({ filter: DEFAULT_FILTER }),
 }));
+
+autoSave(useHistoryStore, "zentral:history", (s) => s.events);

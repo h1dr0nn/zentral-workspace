@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { loadArray, autoSave } from "./persist";
 
 export interface Skill {
   id: string;
@@ -67,8 +68,15 @@ const BUILTIN_SKILLS: Skill[] = [
   { id: "review-implementing", name: "review-implementing", category: "Productivity", description: "Evaluate code implementation plans", prompt: "Evaluate a proposed implementation plan for completeness and feasibility.", builtin: true },
 ];
 
+function loadSkills(): Skill[] {
+  const saved = loadArray<Skill>("zentral:skills");
+  // Only persist custom skills; builtins always come from code
+  const custom = saved.filter((s) => !s.builtin);
+  return [...BUILTIN_SKILLS, ...custom];
+}
+
 export const useSkillStore = create<SkillStore>((set) => ({
-  skills: BUILTIN_SKILLS,
+  skills: loadSkills(),
 
   addSkill: (skill) => {
     const id = `skill-${Date.now()}`;
@@ -83,3 +91,5 @@ export const useSkillStore = create<SkillStore>((set) => ({
       skills: s.skills.map((sk) => (sk.id === id ? { ...sk, ...patch } : sk)),
     })),
 }));
+
+autoSave(useSkillStore, "zentral:skills", (s) => s.skills.filter((sk) => !sk.builtin));
