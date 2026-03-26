@@ -2,6 +2,7 @@ mod agent;
 mod automation;
 mod commands;
 mod config;
+mod mcp;
 pub mod persistence;
 mod process;
 mod project;
@@ -120,7 +121,16 @@ pub fn run() {
                 if p.is_empty() { "claude".to_string() } else { p }
             };
             let model = settings.default_model.lock().unwrap().clone();
-            automation::scheduler::start(db_for_scheduler, app_handle, claude_path, model);
+            automation::scheduler::start(db_for_scheduler, app_handle, claude_path.clone(), model.clone());
+
+            // Start MCP server
+            let mcp_state = mcp::McpState {
+                db: app.state::<persistence::Db>().inner().clone(),
+                claude_path,
+                model,
+            };
+            mcp::start_server(mcp_state, 23847);
+
             Ok(())
         })
         .run(tauri::generate_context!())
