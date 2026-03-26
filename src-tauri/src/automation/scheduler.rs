@@ -7,10 +7,10 @@ use tauri::Emitter;
 
 /// Start the background scheduler loop. Call once during Tauri setup.
 pub fn start(db: Db, app: tauri::AppHandle, claude_path: String, model: String) {
-    tokio::spawn(async move {
+    std::thread::spawn(move || {
         log::info!("Scheduler started");
         loop {
-            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+            std::thread::sleep(std::time::Duration::from_secs(60));
             if let Err(e) = tick(&db, &app, &claude_path, &model) {
                 log::error!("Scheduler tick error: {}", e);
             }
