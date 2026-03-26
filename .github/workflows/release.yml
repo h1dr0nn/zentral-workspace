@@ -44,21 +44,24 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          # Cargo.toml
           sed -i.bak "s/^version = \".*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
-          # tauri.conf.json
           node -e "
             const fs = require('fs');
             const cfg = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
             cfg.version = '$VERSION';
             fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(cfg, null, 2));
           "
-          # package.json
           npm version "$VERSION" --no-git-tag-version --allow-same-version || true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
 
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+          cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -75,7 +78,7 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install frontend dependencies
-        run: npm install
+        run: pnpm install
 
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
